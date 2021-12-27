@@ -43,6 +43,13 @@ public class User extends PanacheMongoEntity {
         this.location = location;
     }
 
+    public User(User other){
+        this.email = other.getEmail();
+        this.firstName = other.getFirstName();
+        this.lastName = other.getLastName();
+        this.location = other.getLocation();
+    }
+
     public ObjectId getId() {
         return id;
     }
