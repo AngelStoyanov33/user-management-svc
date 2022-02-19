@@ -13,7 +13,6 @@ import org.jboss.resteasy.reactive.RestResponse.ResponseBuilder;
 import javax.inject.Inject;
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -32,7 +31,7 @@ public class UserResource {
         try {
             userRepository.addUser(user);
             return ResponseBuilder.ok(userRepository.findByEmail(user.getEmail())).build();
-        }catch (UserAlreadyExistsException e) {
+        } catch (UserAlreadyExistsException e) {
             return ResponseBuilder.ok((User) null).status(RestResponse.Status.CONFLICT).build();
         }
     }
@@ -43,10 +42,9 @@ public class UserResource {
     public RestResponse<User> updateUser(@PathParam("id") String id, User user) {
         try {
             return ResponseBuilder.ok(userRepository.replaceUser(new ObjectId(id), user)).build();
-        }catch (UserAlreadyExistsException e) {
+        } catch (UserAlreadyExistsException e) {
             return ResponseBuilder.ok((User) null).status(RestResponse.Status.NOT_FOUND).build();
         }
-
     }
 
     @GET
@@ -54,7 +52,7 @@ public class UserResource {
     @Path("/user/{id}")
     public RestResponse<User> getUser(@PathParam("id") String id) {
         User user = userRepository.findById(new ObjectId(id));
-        if(user == null) {
+        if (user == null) {
             return ResponseBuilder.ok((User) null).status(RestResponse.Status.NOT_FOUND).build();
         }
         return ResponseBuilder.ok(user).build();
@@ -63,7 +61,7 @@ public class UserResource {
     @GET
     @ResponseStatus(200)
     @Path("/user")
-    public List<User> getUsers(@QueryParam("location") String location) {
+    public List<User> getUsersByLocation(@QueryParam("location") String location) {
         if (location != null) {
             return userRepository.findByLocation(location);
         }
@@ -77,8 +75,24 @@ public class UserResource {
         try {
             userRepository.deleteUserById(new ObjectId(id));
             return ResponseBuilder.ok((User) null).build();
-        }catch (UserNotExistException e) {
+        } catch (UserNotExistException e) {
             return ResponseBuilder.ok((User) null).status(RestResponse.Status.NOT_FOUND).build();
         }
+    }
+
+    @GET
+    @ResponseStatus(200)
+    @Path("/users")
+    public List<User> getUsers(List<String> userIds) {
+        List<User> users = new LinkedList<>();
+        if (!userIds.isEmpty()) {
+            userIds.forEach(id -> {
+                User user = userRepository.findById(new ObjectId(id));
+                if(user != null) {
+                    users.add(user);
+                }
+            });
+        }
+        return users;
     }
 }

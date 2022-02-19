@@ -13,7 +13,7 @@ import java.util.Objects;
 
 @JsonRootName("user")
 @JsonPropertyOrder({"id", "email", "first_name", "last_name", "location"})
-@MongoEntity(collection = "User", database = "sporton-test-db")
+@MongoEntity(collection = "User", database = "sporton-dev-db")
 public class User extends PanacheMongoEntity {
 
     @JsonProperty("id")
