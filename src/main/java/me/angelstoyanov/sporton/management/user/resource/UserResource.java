@@ -1,11 +1,12 @@
 package me.angelstoyanov.sporton.management.user.resource;
 
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
+import me.angelstoyanov.sporton.management.user.exception.InvalidUserIdException;
 import me.angelstoyanov.sporton.management.user.exception.UserAlreadyExistsException;
 import me.angelstoyanov.sporton.management.user.exception.UserNotExistException;
 import me.angelstoyanov.sporton.management.user.model.User;
 import me.angelstoyanov.sporton.management.user.repository.UserRepository;
-import org.bson.types.ObjectId;
 import org.jboss.resteasy.reactive.ResponseStatus;
 import org.jboss.resteasy.reactive.RestResponse;
 import org.jboss.resteasy.reactive.RestResponse.ResponseBuilder;
@@ -19,6 +20,7 @@ import java.util.List;
 @Path("/")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
+@RegisterForReflection
 public class UserResource {
 
     @Inject
@@ -41,7 +43,7 @@ public class UserResource {
     @Path("/user/{id}")
     public RestResponse<User> updateUser(@PathParam("id") String id, User user) {
         try {
-            return ResponseBuilder.ok(userRepository.replaceUser(new ObjectId(id), user)).build();
+            return ResponseBuilder.ok(userRepository.replaceUser(id, user)).build();
         } catch (UserAlreadyExistsException e) {
             return ResponseBuilder.ok((User) null).status(RestResponse.Status.NOT_FOUND).build();
         }
@@ -51,11 +53,15 @@ public class UserResource {
     @ResponseStatus(200)
     @Path("/user/{id}")
     public RestResponse<User> getUser(@PathParam("id") String id) {
-        User user = userRepository.findById(new ObjectId(id));
-        if (user == null) {
-            return ResponseBuilder.ok((User) null).status(RestResponse.Status.NOT_FOUND).build();
+        try {
+            User user = userRepository.findByUserId(id);
+            if (user == null) {
+                return ResponseBuilder.ok((User) null).status(RestResponse.Status.NOT_FOUND).build();
+            }
+            return ResponseBuilder.ok(user).build();
+        }catch (InvalidUserIdException e){
+            return ResponseBuilder.ok((User) null).status(RestResponse.Status.BAD_REQUEST).build();
         }
-        return ResponseBuilder.ok(user).build();
     }
 
     @GET
@@ -73,24 +79,28 @@ public class UserResource {
     @Path("/user/{id}")
     public RestResponse<User> deleteUser(@PathParam("id") String id) {
         try {
-            userRepository.deleteUserById(new ObjectId(id));
+            userRepository.deleteUserById(id);
             return ResponseBuilder.ok((User) null).build();
         } catch (UserNotExistException e) {
             return ResponseBuilder.ok((User) null).status(RestResponse.Status.NOT_FOUND).build();
+        }catch (InvalidUserIdException e){
+            return ResponseBuilder.ok((User) null).status(RestResponse.Status.BAD_REQUEST).build();
         }
     }
 
     @GET
     @ResponseStatus(200)
-    @Path("/users")
+    @Path("/user/all")
     public List<User> getUsers(List<String> userIds) {
         List<User> users = new LinkedList<>();
-        if (!userIds.isEmpty()) {
+        if (userIds != null && !userIds.isEmpty()) {
             userIds.forEach(id -> {
-                User user = userRepository.findById(new ObjectId(id));
-                if(user != null) {
-                    users.add(user);
-                }
+                try {
+                    User user = userRepository.findByUserId(id);
+                    if (user != null) {
+                        users.add(user);
+                    }
+                } catch (InvalidUserIdException ignored){}
             });
         }
         return users;
