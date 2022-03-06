@@ -6,47 +6,54 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.annotation.JsonRootName;
 import io.quarkus.mongodb.panache.PanacheMongoEntity;
 import io.quarkus.mongodb.panache.common.MongoEntity;
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import org.bson.codecs.pojo.annotations.BsonProperty;
 import org.bson.types.ObjectId;
 
-import java.util.Objects;
-
 @JsonRootName("user")
-@JsonPropertyOrder({"id", "email", "first_name", "last_name", "location"})
+@JsonPropertyOrder({"id", "user_id", "email", "username", "location"})
 @MongoEntity(collection = "User", database = "sporton-dev-db")
+@RegisterForReflection
 public class User extends PanacheMongoEntity {
 
     @JsonProperty("id")
-    public ObjectId id; // used by MongoDB for the _id field
+    private ObjectId id;
+
+    @JsonProperty(value = "user_id", required = true)
+    @BsonProperty("user_id")
+    private String userId;
 
     @JsonProperty(value = "email", required = true)
     private String email;
 
-    @JsonProperty(value = "first_name", required = true)
-    @BsonProperty("first_name")
-    private String firstName;
-
-    @JsonProperty(value = "last_name", required = true)
-    @BsonProperty("last_name")
-    private String lastName;
+    @JsonProperty(value = "username", required = true)
+    private String username;
 
     @JsonProperty("location")
     private String location;
 
+    @JsonProperty("role")
+    private Role role;
+
+
+    public enum Role {
+        ADMIN, DEVELOPER, MODERATOR, USER
+    }
+
     public User() {
     }
 
-    public User(String email, String firstName, String lastName, String location) {
+    public User(String userId, String email, String firstName, String location) {
+        this.userId = userId;
         this.email = email;
-        this.firstName = firstName;
-        this.lastName = lastName;
+        this.username = firstName;
         this.location = location;
     }
 
-    public User(User other){
+    public User(User other) {
         this.email = other.getEmail();
-        this.firstName = other.getFirstName();
-        this.lastName = other.getLastName();
+        this.id = other.getId();
+        this.username = other.getUsername();
         this.location = other.getLocation();
     }
 
@@ -66,20 +73,20 @@ public class User extends PanacheMongoEntity {
         this.email = email;
     }
 
-    public String getFirstName() {
-        return firstName;
+    public String getUserId() {
+        return userId;
     }
 
-    public void setFirstName(String firstName) {
-        this.firstName = firstName;
+    public void setUserId(String userId) {
+        this.userId = userId;
     }
 
-    public String getLastName() {
-        return lastName;
+    public String getUsername() {
+        return username;
     }
 
-    public void setLastName(String lastName) {
-        this.lastName = lastName;
+    public void setUsername(String username) {
+        this.username = username;
     }
 
     public String getLocation() {
@@ -90,27 +97,11 @@ public class User extends PanacheMongoEntity {
         this.location = location;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        User user = (User) o;
-        return Objects.equals(id, user.id) && Objects.equals(email, user.email) && Objects.equals(firstName, user.firstName) && Objects.equals(lastName, user.lastName) && Objects.equals(location, user.location);
+    public Role getRole() {
+        return role;
     }
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(id, email, firstName, lastName, location);
-    }
-
-    @Override
-    public String toString() {
-        return "{" +
-                "id=" + id +
-                ", email='" + email + '\'' +
-                ", firstName='" + firstName + '\'' +
-                ", lastName='" + lastName + '\'' +
-                ", location='" + location + '\'' +
-                '}';
+    public void setRole(Role role) {
+        this.role = role;
     }
 }
