@@ -27,14 +27,16 @@ public class UserRepository implements PanacheMongoRepository<User> {
         } catch (IllegalArgumentException exception) {
             throw new InvalidUserIdException("Invalid user id " + id);
         }
-        return find(String.format(Locale.US, "{\"user_id\":\"%s\"}", id)).firstResult();
+        User user = find(String.format(Locale.US, "{\"user_id\":\"%s\"}", id)).firstResult();
+        if (user == null) {
+            throw new UserNotExistException("User with id " + id + " does not exist");
+        }
+        return user;
     }
 
     public void deleteByUserId(String id) {
         User user = findByUserId(id);
-        if (user != null) {
-            delete(user);
-        }
+        delete(user);
     }
 
     public List<User> findByLocation(String location) {

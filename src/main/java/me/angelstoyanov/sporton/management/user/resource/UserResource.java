@@ -29,8 +29,13 @@ public class UserResource {
     @POST
     @ResponseStatus(201)
     @Path("/user")
-    public RestResponse<User> createUser(User user) {
+    public RestResponse<User> createUser(User user,
+                                         @HeaderParam("X-Requesting-User-Role") String userRole,
+                                         @HeaderParam("X-Requesting-User-Id") String userId) {
         try {
+            if (!user.getUserId().equals(userId) && !userRole.equals("ADMIN")) {
+                return ResponseBuilder.ok((User) null).status(RestResponse.Status.FORBIDDEN).build();
+            }
             userRepository.addUser(user);
             return ResponseBuilder.ok(userRepository.findByEmail(user.getEmail())).build();
         } catch (UserAlreadyExistsException e) {
@@ -41,49 +46,59 @@ public class UserResource {
     @PUT
     @ResponseStatus(200)
     @Path("/user/{id}")
-    public RestResponse<User> updateUser(@PathParam("id") String id, User user) {
+    public RestResponse<User> updateUser(@PathParam("id") String id,
+                                         User user,
+                                         @HeaderParam("X-Requesting-User-Role") String userRole,
+                                         @HeaderParam("X-Requesting-User-Id") String userId) {
         try {
-            return ResponseBuilder.ok(userRepository.replaceUser(id, user)).build();
-        } catch (UserAlreadyExistsException e) {
-            return ResponseBuilder.ok((User) null).status(RestResponse.Status.NOT_FOUND).build();
-        }
-    }
-
-    @GET
-    @ResponseStatus(200)
-    @Path("/user/{id}")
-    public RestResponse<User> getUser(@PathParam("id") String id) {
-        try {
-            User user = userRepository.findByUserId(id);
-            if (user == null) {
-                return ResponseBuilder.ok((User) null).status(RestResponse.Status.NOT_FOUND).build();
+            User existingUser = userRepository.findByUserId(id);
+            if (!existingUser.getUserId().equals(userId) && !userRole.equals("ADMIN")) {
+                return ResponseBuilder.ok((User) null).status(RestResponse.Status.FORBIDDEN).build();
             }
-            return ResponseBuilder.ok(user).build();
-        }catch (InvalidUserIdException e){
+            return ResponseBuilder.ok(userRepository.replaceUser(id, user)).build();
+        } catch (UserNotExistException e) {
+            return ResponseBuilder.ok((User) null).status(RestResponse.Status.NOT_FOUND).build();
+        } catch (InvalidUserIdException e) {
             return ResponseBuilder.ok((User) null).status(RestResponse.Status.BAD_REQUEST).build();
         }
     }
 
     @GET
     @ResponseStatus(200)
-    @Path("/user")
-    public List<User> getUsersByLocation(@QueryParam("location") String location) {
-        if (location != null) {
-            return userRepository.findByLocation(location);
+    @Path("/user/{id}")
+    public RestResponse<User> getUser(@PathParam("id") String id,
+                                      @HeaderParam("X-Requesting-User-Role") String userRole,
+                                      @HeaderParam("X-Requesting-User-Id") String userId) {
+        try {
+            User user = userRepository.findByUserId(id);
+            if (user == null) {
+                return ResponseBuilder.ok((User) null).status(RestResponse.Status.NOT_FOUND).build();
+            }
+            if (!user.getUserId().equals(userId) && !userRole.equals("ADMIN")) {
+                return ResponseBuilder.ok((User) null).status(RestResponse.Status.FORBIDDEN).build();
+            }
+            return ResponseBuilder.ok(user).build();
+        } catch (InvalidUserIdException e) {
+            return ResponseBuilder.ok((User) null).status(RestResponse.Status.BAD_REQUEST).build();
         }
-        return new LinkedList<>();
     }
 
     @DELETE
     @ResponseStatus(200)
     @Path("/user/{id}")
-    public RestResponse<User> deleteUser(@PathParam("id") String id) {
+    public RestResponse<User> deleteUser(@PathParam("id") String id,
+                                         @HeaderParam("X-Requesting-User-Role") String userRole,
+                                         @HeaderParam("X-Requesting-User-Id") String userId) {
         try {
+            User user = userRepository.findByUserId(id);
+            if (!user.getUserId().equals(userId) && !userRole.equals("ADMIN")) {
+                return ResponseBuilder.ok((User) null).status(RestResponse.Status.FORBIDDEN).build();
+            }
             userRepository.deleteUserById(id);
             return ResponseBuilder.ok((User) null).build();
         } catch (UserNotExistException e) {
             return ResponseBuilder.ok((User) null).status(RestResponse.Status.NOT_FOUND).build();
-        }catch (InvalidUserIdException e){
+        } catch (InvalidUserIdException e) {
             return ResponseBuilder.ok((User) null).status(RestResponse.Status.BAD_REQUEST).build();
         }
     }
@@ -100,7 +115,8 @@ public class UserResource {
                     if (user != null) {
                         users.add(user);
                     }
-                } catch (InvalidUserIdException ignored){}
+                } catch (InvalidUserIdException ignored) {
+                }
             });
         }
         return users;
